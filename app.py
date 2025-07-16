@@ -249,6 +249,8 @@ def main():
     # セッション状態の初期化
     if "simulator" not in st.session_state:
         st.session_state.simulator = NetworkSimulator()
+    if "last_action" not in st.session_state:
+        st.session_state.last_action = None
     
     simulator = st.session_state.simulator
     
@@ -262,15 +264,25 @@ def main():
         
         if selected_device != "なし":
             device_id = selected_device.split(":")[0]
-            if st.button("故障状態に設定"):
+            if st.button("故障状態に設定", key=f"fail_{device_id}"):
                 simulator.set_device_status(device_id, DeviceStatus.FAILED)
-                st.success(f"{selected_device} を故障状態に設定しました")
+                st.session_state.last_action = f"{selected_device} を故障状態に設定"
+                st.rerun()
         
-        if st.button("全デバイスを正常状態にリセット"):
+        if st.button("全デバイスを正常状態にリセット", key="reset_all"):
             for device in simulator.devices:
                 device.status = DeviceStatus.NORMAL
             simulator.ping_history = []
-            st.success("全デバイスを正常状態にリセットしました")
+            st.session_state.last_action = "全デバイスをリセット"
+            st.rerun()
+        
+        # 最後のアクションを表示
+        if st.session_state.last_action:
+            st.success(f"✅ {st.session_state.last_action}")
+            # 一定時間後にメッセージをクリア
+            if st.button("メッセージをクリア", key="clear_msg"):
+                st.session_state.last_action = None
+                st.rerun()
     
     # メインエリア
     col1, col2 = st.columns([2, 1])
@@ -311,18 +323,28 @@ def main():
             format_func=lambda x: next(d[1] for d in device_list if d[0] == x)
         )
         
-        if st.button("🚀 Ping実行", type="primary"):
+        if st.button("🚀 Ping実行", type="primary", key="ping_execute"):
             if source_device != destination_device:
                 with st.spinner("疎通確認中..."):
                     time.sleep(1)  # リアルな感じのための待機
                     result = simulator.simulate_ping(source_device, destination_device)
                 
-                if result.result:
-                    st.success(f"✅ 疎通成功 ({result.response_time:.1f}ms)")
-                else:
-                    st.error("❌ 疎通失敗")
+                # 結果をセッション状態に保存
+                if "ping_result" not in st.session_state:
+                    st.session_state.ping_result = None
+                
+                st.session_state.ping_result = result
+                st.rerun()
             else:
                 st.warning("送信元と送信先は異なるデバイスを選択してください")
+        
+        # Ping結果の表示
+        if "ping_result" in st.session_state and st.session_state.ping_result:
+            result = st.session_state.ping_result
+            if result.result:
+                st.success(f"✅ 疎通成功 ({result.response_time:.1f}ms)")
+            else:
+                st.error("❌ 疎通失敗")
     
     # 疎通履歴
     st.subheader("📋 疎通確認履歴")
