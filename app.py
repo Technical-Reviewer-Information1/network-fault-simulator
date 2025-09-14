@@ -173,19 +173,19 @@ class NetworkSimulator:
 
 def create_network_graph(simulator: NetworkSimulator) -> go.Figure:
     """ネットワーク図の作成"""
-    # デバイスアイコンのマッピング
+    # デバイスアイコンのマッピング（文字列キーを使用）
     device_symbols = {
-        DeviceType.ROUTER: "diamond",
-        DeviceType.SWITCH: "square",
-        DeviceType.PC: "circle",
-        DeviceType.SERVER: "hexagon"
+        "router": "diamond",
+        "switch": "square", 
+        "pc": "circle",
+        "server": "hexagon"
     }
     
-    # ステータス色のマッピング
+    # ステータス色のマッピング（文字列キーを使用）
     status_colors = {
-        DeviceStatus.NORMAL: "green",
-        DeviceStatus.FAILED: "red",
-        DeviceStatus.UNKNOWN: "gray"
+        "normal": "green",
+        "failed": "red",
+        "unknown": "gray"
     }
     
     fig = go.Figure()
@@ -216,8 +216,8 @@ def create_network_graph(simulator: NetworkSimulator) -> go.Figure:
     for device in simulator.devices:
         x_coords.append(device.position[0])
         y_coords.append(device.position[1])
-        symbols.append(device_symbols[device.device_type])
-        colors.append(status_colors[device.status])
+        symbols.append(device_symbols[device.device_type.value])
+        colors.append(status_colors[device.status.value])
         texts.append(f"{device.name}<br>{device.ip_address}")
         names.append(device.device_type.value.title())
     
