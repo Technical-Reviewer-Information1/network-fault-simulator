@@ -445,8 +445,10 @@ def main():
                 st.session_state.diagnosis_result = diagnosis
 
             # デバッグ情報を常に表示
-            failed_devices = [f"{d.name}({d.status.value})" for d in simulator.devices if d.status.value != "normal"]
-            st.write("DEBUG: 故障デバイス:", failed_devices)
+            failed_devices_display = [f"{d.name}({d.status.value})" for d in simulator.devices if d.status.value != "normal"]
+            failed_devices_actual = [d for d in simulator.devices if d.status == DeviceStatus.FAILED]
+            st.write("DEBUG: 故障デバイス（表示用）:", failed_devices_display)
+            st.write("DEBUG: 故障デバイス（実際の数）:", len(failed_devices_actual))
             st.write("DEBUG: ping履歴数:", len(simulator.ping_history))
             if "diagnosis_result" in st.session_state:
                 st.write("DEBUG: 診断結果:", st.session_state.diagnosis_result)
