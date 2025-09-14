@@ -143,8 +143,8 @@ class NetworkSimulator:
     
     def diagnose_failure(self) -> Dict[str, List[str]]:
         """故障診断ロジック"""
-        # 故障中のデバイスを確認
-        failed_devices = [d for d in self.devices if d.status == DeviceStatus.FAILED]
+        # 故障中のデバイスを確認（文字列値で比較）
+        failed_devices = [d for d in self.devices if d.status.value == "failed"]
         
         # ping履歴から失敗した疎通を確認
         failed_pings = [p for p in self.ping_history if not p.result]
@@ -155,8 +155,8 @@ class NetworkSimulator:
             suggestions = []
             
             # 故障デバイスの種類による分析
-            failed_infrastructure = [d for d in failed_devices if d.device_type in [DeviceType.ROUTER, DeviceType.SWITCH]]
-            failed_endpoints = [d for d in failed_devices if d.device_type in [DeviceType.PC, DeviceType.SERVER]]
+            failed_infrastructure = [d for d in failed_devices if d.device_type.value in ["router", "switch"]]
+            failed_endpoints = [d for d in failed_devices if d.device_type.value in ["pc", "server"]]
             
             if failed_infrastructure:
                 candidates.extend([d.name for d in failed_infrastructure])
@@ -197,7 +197,7 @@ class NetworkSimulator:
             # すべてのインフラ機器を候補として挙げる
             candidates = []
             for device in self.devices:
-                if device.device_type in [DeviceType.ROUTER, DeviceType.SWITCH]:
+                if device.device_type.value in ["router", "switch"]:
                     candidates.append(device.name)
             
             suggestions = [
