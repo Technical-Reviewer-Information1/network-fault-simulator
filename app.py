@@ -441,8 +441,15 @@ def main():
         with col2:
             st.subheader("🔧 故障診断")
             if st.button("診断を実行", key="diagnose_button"):
+                # デバッグ用：デバイス状態を表示
+                failed_devices = [f"{d.name}({d.status.value})" for d in simulator.devices if d.status.value != "normal"]
+                st.write("DEBUG: 故障デバイス:", failed_devices)
+                st.write("DEBUG: ping履歴数:", len(simulator.ping_history))
+
                 diagnosis = simulator.diagnose_failure()
                 st.session_state.diagnosis_result = diagnosis
+                # デバッグ用：診断結果を表示
+                st.write("DEBUG: 診断結果:", diagnosis)
                 st.rerun()
 
             # 診断結果の表示（セッションステートから）
