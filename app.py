@@ -158,11 +158,23 @@ class NetworkSimulator:
             failed_infrastructure = [d for d in failed_devices if d.device_type.value in ["router", "switch"]]
             failed_endpoints = [d for d in failed_devices if d.device_type.value in ["pc", "server"]]
             
+            # 影響範囲の分析
+            impact_analysis = self.analyze_failure_impact()
+            
             if failed_infrastructure:
                 candidates.extend([d.name for d in failed_infrastructure])
                 suggestions.append("⚠️ インフラ機器（ルータ・スイッチ）の故障を検出")
                 suggestions.append("影響範囲が広い可能性があります")
                 suggestions.append("早急に機器の交換または修理を実施してください")
+                
+                # 影響を受けるデバイスの詳細表示
+                for failed_device_name, affected_devices in impact_analysis.items():
+                    if affected_devices:
+                        suggestions.append(f"📍 {failed_device_name}の故障により影響を受ける機器:")
+                        for affected in affected_devices:
+                            suggestions.append(f"  • {affected}")
+                    else:
+                        suggestions.append(f"📍 {failed_device_name}の故障による直接的な通信断絶はありませんが、冗長性が失われています")
             
             if failed_endpoints:
                 candidates.extend([d.name for d in failed_endpoints])
@@ -184,7 +196,8 @@ class NetworkSimulator:
                 "candidates": candidates,
                 "suggestions": suggestions,
                 "affected_count": len(failed_devices),
-                "status": "failure_detected"
+                "status": "failure_detected",
+                "impact_analysis": impact_analysis
             }
         
         # 故障デバイスはないが、ping失敗がある場合
@@ -222,6 +235,57 @@ class NetworkSimulator:
                 "candidates": [],
                 "affected_count": 0
             }
+
+    
+    def analyze_failure_impact(self) -> Dict[str, List[str]]:
+        """故障機器の影響範囲を分析"""
+        failed_devices = [d for d in self.devices if d.status.value == "failed"]
+        impact_analysis = {}
+        
+        for failed_device in failed_devices:
+            affected_devices = []
+            
+            # 故障デバイスがインフラ機器（ルータ・スイッチ）の場合
+            if failed_device.device_type.value in ["router", "switch"]:
+                # NetworkXを使って接続性を確認
+                G = nx.Graph()
+                for device in self.devices:
+                    if device.status.value != "failed":  # 故障していない機器のみ
+                        G.add_node(device.id)
+                
+                # 故障していない機器間の接続のみ追加
+                for src, dst in self.connections:
+                    src_device = self.get_device_by_id(src)
+                    dst_device = self.get_device_by_id(dst)
+                    if (src_device and dst_device and 
+                        src_device.status.value != "failed" and 
+                        dst_device.status.value != "failed"):
+                        G.add_edge(src, dst)
+                
+                # 各デバイスが他のデバイスに到達可能かチェック
+                all_devices = [d for d in self.devices if d.status.value != "failed" and d.id != failed_device.id]
+                
+                for device in all_devices:
+                    # このデバイスから他のデバイスへの到達可能性をチェック
+                    reachable_count = 0
+                    total_targets = len([d for d in all_devices if d.id != device.id])
+                    
+                    if total_targets > 0:
+                        for target in all_devices:
+                            if device.id != target.id:
+                                try:
+                                    nx.shortest_path(G, device.id, target.id)
+                                    reachable_count += 1
+                                except nx.NetworkXNoPath:
+                                    pass
+                        
+                        # 到達可能な機器の割合が低い場合、影響を受けているとみなす
+                        if reachable_count < total_targets * 0.5:  # 50%未満しか到達できない
+                            affected_devices.append(device.name)
+            
+            impact_analysis[failed_device.name] = affected_devices
+        
+        return impact_analysis
 
 def create_network_graph(simulator: NetworkSimulator) -> go.Figure:
     """ネットワーク図の作成"""
@@ -444,14 +508,6 @@ def main():
                 diagnosis = simulator.diagnose_failure()
                 st.session_state.diagnosis_result = diagnosis
 
-            # デバッグ情報を常に表示
-            failed_devices_display = [f"{d.name}({d.status.value})" for d in simulator.devices if d.status.value != "normal"]
-            failed_devices_actual = [d for d in simulator.devices if d.status == DeviceStatus.FAILED]
-            st.write("DEBUG: 故障デバイス（表示用）:", failed_devices_display)
-            st.write("DEBUG: 故障デバイス（実際の数）:", len(failed_devices_actual))
-            st.write("DEBUG: ping履歴数:", len(simulator.ping_history))
-            if "diagnosis_result" in st.session_state:
-                st.write("DEBUG: 診断結果:", st.session_state.diagnosis_result)
 
             # 診断結果の表示（セッションステートから）
             if "diagnosis_result" in st.session_state and st.session_state.diagnosis_result:
