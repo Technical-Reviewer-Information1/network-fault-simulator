@@ -205,37 +205,44 @@ def create_network_graph(simulator: NetworkSimulator) -> go.Figure:
                 hoverinfo="skip"
             ))
     
-    # デバイスの描画
-    for device_type in DeviceType:
-        devices_of_type = [d for d in simulator.devices if d.device_type == device_type]
-        
-        if devices_of_type:
-            x_coords = [d.position[0] for d in devices_of_type]
-            y_coords = [d.position[1] for d in devices_of_type]
-            colors = [status_colors[d.status] for d in devices_of_type]
-            names = [d.name for d in devices_of_type]
-            ips = [d.ip_address for d in devices_of_type]
-            
-            fig.add_trace(go.Scatter(
-                x=x_coords,
-                y=y_coords,
-                mode="markers+text",
-                marker=dict(
-                    symbol=device_symbols[device_type],
-                    size=20,
-                    color=colors,
-                    line=dict(width=2, color="black")
-                ),
-                text=[f"{name}<br>{ip}" for name, ip in zip(names, ips)],
-                textposition="bottom center",
-                textfont=dict(color="black"),
-                name=device_type.value.title(),
-                hovertemplate="<b>%{text}</b><br>状態: %{marker.color}<extra></extra>"
-            ))
+    # 全デバイスの座標とプロパティを準備
+    x_coords = []
+    y_coords = []
+    symbols = []
+    colors = []
+    texts = []
+    names = []
+    
+    for device in simulator.devices:
+        x_coords.append(device.position[0])
+        y_coords.append(device.position[1])
+        symbols.append(device_symbols[device.device_type])
+        colors.append(status_colors[device.status])
+        texts.append(f"{device.name}<br>{device.ip_address}")
+        names.append(device.device_type.value.title())
+    
+    # すべてのデバイスを一つのトレースで描画
+    fig.add_trace(go.Scatter(
+        x=x_coords,
+        y=y_coords,
+        mode="markers+text",
+        marker=dict(
+            symbol=symbols,
+            size=20,
+            color=colors,
+            line=dict(width=2, color="black")
+        ),
+        text=texts,
+        textposition="bottom center",
+        textfont=dict(color="black"),
+        name="Network Devices",
+        hovertemplate="<b>%{text}</b><br>状態: %{marker.color}<extra></extra>",
+        showlegend=False
+    ))
     
     fig.update_layout(
         title="ネットワーク構成図",
-        showlegend=True,
+        showlegend=False,
         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
         plot_bgcolor="white",
