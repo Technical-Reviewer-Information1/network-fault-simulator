@@ -11,7 +11,7 @@ from enum import Enum
 
 # ページ設定
 st.set_page_config(
-    page_title="ネットワーク故障診断シミュレータ",
+    page_title="ネットワークの通信障害",
     page_icon="🌐",
     layout="wide"
 )
@@ -244,7 +244,7 @@ def create_network_graph(simulator: NetworkSimulator) -> go.Figure:
     return fig
 
 def main():
-    st.title("🌐 ネットワーク故障診断シミュレータ")
+    st.title("ネットワークの通信障害（pp.112-114）")
     
     # セッション状態の初期化
     if "simulator" not in st.session_state:
@@ -254,40 +254,10 @@ def main():
     
     simulator = st.session_state.simulator
     
-    # サイドバー：設定パネル
-    with st.sidebar:
-        st.header("⚙️ 設定パネル")
-        
-        st.subheader("故障シミュレーション")
-        device_options = [f"{d.id}: {d.name}" for d in simulator.devices]
-        selected_device = st.selectbox("故障させるデバイス", ["なし"] + device_options)
-        
-        if selected_device != "なし":
-            device_id = selected_device.split(":")[0]
-            if st.button("故障状態に設定", key=f"fail_{device_id}"):
-                simulator.set_device_status(device_id, DeviceStatus.FAILED)
-                st.session_state.last_action = f"{selected_device} を故障状態に設定"
-                st.rerun()
-        
-        if st.button("全デバイスを正常状態にリセット", key="reset_all"):
-            for device in simulator.devices:
-                device.status = DeviceStatus.NORMAL
-            simulator.ping_history = []
-            st.session_state.last_action = "全デバイスをリセット"
-            st.rerun()
-        
-        # 最後のアクションを表示
-        if st.session_state.last_action:
-            st.success(f"✅ {st.session_state.last_action}")
-            # 一定時間後にメッセージをクリア
-            if st.button("メッセージをクリア", key="clear_msg"):
-                st.session_state.last_action = None
-                st.rerun()
+    # タブで機能を分割
+    tab1, tab2, tab3 = st.tabs(["🌐 ネットワーク構成", "🔍 疎通確認", "⚙️ 設定・診断"])
     
-    # メインエリア
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
+    with tab1:
         st.subheader("📊 ネットワーク構成図")
         network_fig = create_network_graph(simulator)
         st.plotly_chart(network_fig, use_container_width=True)
@@ -306,80 +276,114 @@ def main():
         - ⬡ 六角形：サーバ
         """)
     
-    with col2:
+    with tab2:
         st.subheader("🔍 疎通確認")
         
-        device_list = [(d.id, f"{d.name} ({d.ip_address})") for d in simulator.devices]
+        col1, col2 = st.columns(2)
         
-        source_device = st.selectbox(
-            "送信元デバイス",
-            options=[d[0] for d in device_list],
-            format_func=lambda x: next(d[1] for d in device_list if d[0] == x)
-        )
+        with col1:
+            device_list = [(d.id, f"{d.name} ({d.ip_address})") for d in simulator.devices]
+            
+            source_device = st.selectbox(
+                "送信元デバイス",
+                options=[d[0] for d in device_list],
+                format_func=lambda x: next(d[1] for d in device_list if d[0] == x)
+            )
+            
+            destination_device = st.selectbox(
+                "送信先デバイス",
+                options=[d[0] for d in device_list],
+                format_func=lambda x: next(d[1] for d in device_list if d[0] == x)
+            )
         
-        destination_device = st.selectbox(
-            "送信先デバイス",
-            options=[d[0] for d in device_list],
-            format_func=lambda x: next(d[1] for d in device_list if d[0] == x)
-        )
+        with col2:
+            if st.button("🚀 Ping実行", type="primary", key="ping_execute"):
+                if source_device != destination_device:
+                    with st.spinner("疎通確認中..."):
+                        time.sleep(1)  # リアルな感じのための待機
+                        result = simulator.simulate_ping(source_device, destination_device)
+                    
+                    # 結果をセッション状態に保存
+                    if "ping_result" not in st.session_state:
+                        st.session_state.ping_result = None
+                    
+                    st.session_state.ping_result = result
+                    st.rerun()
+                else:
+                    st.warning("送信元と送信先は異なるデバイスを選択してください")
+            
+            # Ping結果の表示
+            if "ping_result" in st.session_state and st.session_state.ping_result:
+                result = st.session_state.ping_result
+                if result.result:
+                    st.success(f"✅ 疎通成功 ({result.response_time:.1f}ms)")
+                else:
+                    st.error("❌ 疎通失敗")
         
-        if st.button("🚀 Ping実行", type="primary", key="ping_execute"):
-            if source_device != destination_device:
-                with st.spinner("疎通確認中..."):
-                    time.sleep(1)  # リアルな感じのための待機
-                    result = simulator.simulate_ping(source_device, destination_device)
-                
-                # 結果をセッション状態に保存
-                if "ping_result" not in st.session_state:
-                    st.session_state.ping_result = None
-                
-                st.session_state.ping_result = result
+        # 疎通履歴
+        st.subheader("📋 疎通確認履歴")
+        if simulator.ping_history:
+            history_df = pd.DataFrame([
+                {
+                    "時刻": p.timestamp,
+                    "送信元": p.source,
+                    "送信先": p.destination,
+                    "結果": "✅ 成功" if p.result else "❌ 失敗",
+                    "応答時間": f"{p.response_time:.1f}ms" if p.response_time else "-"
+                }
+                for p in simulator.ping_history[-10:]  # 最新10件
+            ])
+            st.dataframe(history_df, use_container_width=True)
+        else:
+            st.info("疎通確認の履歴がありません")
+    
+    with tab3:
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("⚙️ 故障シミュレーション")
+            device_options = [f"{d.id}: {d.name}" for d in simulator.devices]
+            selected_device = st.selectbox("故障させるデバイス", ["なし"] + device_options)
+            
+            if selected_device != "なし":
+                device_id = selected_device.split(":")[0]
+                if st.button("故障状態に設定", key=f"fail_{device_id}"):
+                    simulator.set_device_status(device_id, DeviceStatus.FAILED)
+                    st.session_state.last_action = f"{selected_device} を故障状態に設定"
+                    st.rerun()
+            
+            if st.button("全デバイスを正常状態にリセット", key="reset_all"):
+                for device in simulator.devices:
+                    device.status = DeviceStatus.NORMAL
+                simulator.ping_history = []
+                st.session_state.last_action = "全デバイスをリセット"
                 st.rerun()
-            else:
-                st.warning("送信元と送信先は異なるデバイスを選択してください")
+            
+            # 最後のアクションを表示
+            if st.session_state.last_action:
+                st.success(f"✅ {st.session_state.last_action}")
+                # 一定時間後にメッセージをクリア
+                if st.button("メッセージをクリア", key="clear_msg"):
+                    st.session_state.last_action = None
+                    st.rerun()
         
-        # Ping結果の表示
-        if "ping_result" in st.session_state and st.session_state.ping_result:
-            result = st.session_state.ping_result
-            if result.result:
-                st.success(f"✅ 疎通成功 ({result.response_time:.1f}ms)")
-            else:
-                st.error("❌ 疎通失敗")
-    
-    # 疎通履歴
-    st.subheader("📋 疎通確認履歴")
-    if simulator.ping_history:
-        history_df = pd.DataFrame([
-            {
-                "時刻": p.timestamp,
-                "送信元": p.source,
-                "送信先": p.destination,
-                "結果": "✅ 成功" if p.result else "❌ 失敗",
-                "応答時間": f"{p.response_time:.1f}ms" if p.response_time else "-"
-            }
-            for p in simulator.ping_history[-10:]  # 最新10件
-        ])
-        st.dataframe(history_df, use_container_width=True)
-    else:
-        st.info("疎通確認の履歴がありません")
-    
-    # 故障診断
-    st.subheader("🔧 故障診断")
-    if st.button("診断を実行"):
-        diagnosis = simulator.diagnose_failure()
-        
-        if diagnosis.get("candidates"):
-            st.warning(f"⚠️ 故障の可能性があるデバイス: {len(diagnosis['candidates'])}台")
-            for candidate in diagnosis["candidates"]:
-                st.write(f"• {candidate}")
-        
-        if diagnosis.get("suggestions"):
-            st.info("💡 推奨アクション:")
-            for suggestion in diagnosis["suggestions"]:
-                st.write(f"• {suggestion}")
-        
-        if not simulator.ping_history or all(p.result for p in simulator.ping_history):
-            st.success("✅ ネットワークは正常に動作しています")
+        with col2:
+            st.subheader("🔧 故障診断")
+            if st.button("診断を実行"):
+                diagnosis = simulator.diagnose_failure()
+                
+                if diagnosis.get("candidates"):
+                    st.warning(f"⚠️ 故障の可能性があるデバイス: {len(diagnosis['candidates'])}台")
+                    for candidate in diagnosis["candidates"]:
+                        st.write(f"• {candidate}")
+                
+                if diagnosis.get("suggestions"):
+                    st.info("💡 推奨アクション:")
+                    for suggestion in diagnosis["suggestions"]:
+                        st.write(f"• {suggestion}")
+                
+                if not simulator.ping_history or all(p.result for p in simulator.ping_history):
+                    st.success("✅ ネットワークは正常に動作しています")
 
 if __name__ == "__main__":
     main()
