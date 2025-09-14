@@ -143,33 +143,85 @@ class NetworkSimulator:
     
     def diagnose_failure(self) -> Dict[str, List[str]]:
         """故障診断ロジック"""
+        # 故障中のデバイスを確認
+        failed_devices = [d for d in self.devices if d.status == DeviceStatus.FAILED]
+        
+        # ping履歴から失敗した疎通を確認
         failed_pings = [p for p in self.ping_history if not p.result]
-        if not failed_pings:
-            return {"status": "正常", "suggestions": []}
         
-        # 失敗した疎通の分析
-        affected_devices = set()
-        for ping in failed_pings:
-            affected_devices.add(ping.source)
-            affected_devices.add(ping.destination)
+        # 故障デバイスがある場合
+        if failed_devices:
+            candidates = []
+            suggestions = []
+            
+            # 故障デバイスの種類による分析
+            failed_infrastructure = [d for d in failed_devices if d.device_type in [DeviceType.ROUTER, DeviceType.SWITCH]]
+            failed_endpoints = [d for d in failed_devices if d.device_type in [DeviceType.PC, DeviceType.SERVER]]
+            
+            if failed_infrastructure:
+                candidates.extend([d.name for d in failed_infrastructure])
+                suggestions.append("⚠️ インフラ機器（ルータ・スイッチ）の故障を検出")
+                suggestions.append("影響範囲が広い可能性があります")
+                suggestions.append("早急に機器の交換または修理を実施してください")
+            
+            if failed_endpoints:
+                candidates.extend([d.name for d in failed_endpoints])
+                suggestions.append("エンドポイント機器（PC・サーバ）の故障を検出")
+                suggestions.append("個別機器の問題として対応してください")
+            
+            # ping失敗がある場合の追加情報
+            if failed_pings:
+                affected_devices = set()
+                for ping in failed_pings:
+                    affected_devices.add(ping.source)
+                    affected_devices.add(ping.destination)
+                suggestions.append(f"疎通失敗が確認されています（影響機器数: {len(affected_devices)}台）")
+            else:
+                suggestions.append("故障機器が検出されていますが、まだ疎通テストが実行されていません")
+                suggestions.append("疎通確認を実施して影響範囲を特定してください")
+            
+            return {
+                "candidates": candidates,
+                "suggestions": suggestions,
+                "affected_count": len(failed_devices),
+                "status": "failure_detected"
+            }
         
-        # 故障候補の特定
-        candidates = []
-        for device in self.devices:
-            if device.device_type in [DeviceType.ROUTER, DeviceType.SWITCH]:
-                candidates.append(device.name)
+        # 故障デバイスはないが、ping失敗がある場合
+        elif failed_pings:
+            affected_devices = set()
+            for ping in failed_pings:
+                affected_devices.add(ping.source)
+                affected_devices.add(ping.destination)
+            
+            # すべてのインフラ機器を候補として挙げる
+            candidates = []
+            for device in self.devices:
+                if device.device_type in [DeviceType.ROUTER, DeviceType.SWITCH]:
+                    candidates.append(device.name)
+            
+            suggestions = [
+                "疎通失敗が検出されましたが、故障機器が特定されていません",
+                "コアインフラ機器（ルータ・スイッチ）の確認を推奨",
+                "複数のPCで同じ症状が出ている場合は上位機器の故障を疑う",
+                "段階的に上位から下位へ疎通確認を実施"
+            ]
+            
+            return {
+                "candidates": candidates,
+                "suggestions": suggestions,
+                "affected_count": len(affected_devices),
+                "status": "ping_failures"
+            }
         
-        suggestions = [
-            "コアインフラ機器（ルータ・スイッチ）の確認を推奨",
-            "複数のPCで同じ症状が出ている場合は上位機器の故障を疑う",
-            "段階的に上位から下位へ疎通確認を実施"
-        ]
-        
-        return {
-            "candidates": candidates,
-            "suggestions": suggestions,
-            "affected_count": len(affected_devices)
-        }
+        # 故障デバイスもping失敗もない場合
+        else:
+            return {
+                "status": "normal", 
+                "suggestions": [],
+                "candidates": [],
+                "affected_count": 0
+            }
 
 def create_network_graph(simulator: NetworkSimulator) -> go.Figure:
     """ネットワーク図の作成"""
@@ -370,6 +422,11 @@ def main():
                 for device in simulator.devices:
                     device.status = DeviceStatus.NORMAL
                 simulator.ping_history = []
+                # 関連するセッションステートもクリア
+                if "ping_result" in st.session_state:
+                    del st.session_state.ping_result
+                if "diagnosis_result" in st.session_state:
+                    del st.session_state.diagnosis_result
                 st.session_state.last_action = "全デバイスをリセット"
                 st.rerun()
             
@@ -383,21 +440,38 @@ def main():
         
         with col2:
             st.subheader("🔧 故障診断")
-            if st.button("診断を実行"):
+            if st.button("診断を実行", key="diagnose_button"):
                 diagnosis = simulator.diagnose_failure()
-                
+                st.session_state.diagnosis_result = diagnosis
+                st.rerun()
+
+            # 診断結果の表示（セッションステートから）
+            if "diagnosis_result" in st.session_state and st.session_state.diagnosis_result:
+                diagnosis = st.session_state.diagnosis_result
+
+                # 診断ステータスに応じた表示
+                if diagnosis.get("status") == "failure_detected":
+                    st.error("🚨 故障デバイスが検出されました")
+                elif diagnosis.get("status") == "ping_failures":
+                    st.warning("⚠️ 疎通失敗が検出されました")
+                elif diagnosis.get("status") == "normal":
+                    st.success("✅ ネットワークは正常に動作しています")
+
                 if diagnosis.get("candidates"):
                     st.warning(f"⚠️ 故障の可能性があるデバイス: {len(diagnosis['candidates'])}台")
                     for candidate in diagnosis["candidates"]:
                         st.write(f"• {candidate}")
-                
+
                 if diagnosis.get("suggestions"):
                     st.info("💡 推奨アクション:")
                     for suggestion in diagnosis["suggestions"]:
                         st.write(f"• {suggestion}")
-                
-                if not simulator.ping_history or all(p.result for p in simulator.ping_history):
-                    st.success("✅ ネットワークは正常に動作しています")
+
+            # リセット時に診断結果もクリア
+            if st.button("診断結果をクリア", key="clear_diagnosis"):
+                if "diagnosis_result" in st.session_state:
+                    del st.session_state.diagnosis_result
+                st.rerun()
 
 if __name__ == "__main__":
     main()
