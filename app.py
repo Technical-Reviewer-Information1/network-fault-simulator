@@ -228,6 +228,7 @@ def create_network_graph(simulator: NetworkSimulator) -> go.Figure:
                 ),
                 text=[f"{name}<br>{ip}" for name, ip in zip(names, ips)],
                 textposition="bottom center",
+                textfont=dict(color="black"),
                 name=device_type.value.title(),
                 hovertemplate="<b>%{text}</b><br>状態: %{marker.color}<extra></extra>"
             ))
