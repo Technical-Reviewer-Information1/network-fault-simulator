@@ -260,19 +260,25 @@ def main():
     network_fig = create_network_graph(simulator)
     st.plotly_chart(network_fig, use_container_width=True)
     
-    # 凡例
-    st.markdown("""
-    **状態表示:**
-    - 🟢 緑：正常
-    - 🔴 赤：故障
-    - ⚫ グレー：不明
-    
-    **デバイス種別:**
-    - ◆ ダイヤモンド：ルータ
-    - ■ 四角：スイッチ
-    - ● 円：PC
-    - ⬡ 六角形：サーバ
-    """)
+    # 凡例をカラムで整理
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown("""
+        **状態表示:**
+        - 🟢 緑：正常
+        - 🔴 赤：故障
+        - ⚫ グレー：不明
+        """)
+
+    with col2:
+        st.markdown("""
+        **デバイス種別:**
+        - ◆ ダイヤモンド：ルータ
+        - ■ 四角：スイッチ
+        - ● 円：PC
+        - ⬡ 六角形：サーバ
+        """)
     
     # 疎通確認と診断のタブを構成図の下に配置
     tab1, tab2 = st.tabs(["🔍 疎通確認", "⚙️ 設定・診断"])
