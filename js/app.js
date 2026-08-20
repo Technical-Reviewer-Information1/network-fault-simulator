@@ -231,6 +231,12 @@
 
   function drawAll() { drawTopo(); drawTable(); drawSuspects(); }
 
+  /* 本文の問題 */
+  function drawBook() {
+    if (!document.getElementById('bookBox')) return;
+    window.Quiz.choice('bookBox', 'bookNote', [{"k": "ア・イ", "q": "視聴覚室からの疎通結果から、故障の可能性がある機器は（2つのうちの1つ）。", "ch": ["Aのスイッチングハブ", "Bのスイッチングハブ", "Cのスイッチングハブ", "Dのスイッチングハブ", "Eのスイッチングハブ", "Fのスイッチングハブ", "ルータ", "この情報では特定できない"], "a": "2|0", "why": "視聴覚室からは 192.168.1.61 と 192.168.1.101 には届き、それ以外には届きません。届く相手と届かない相手を分ける位置にある機器が候補になります。"}, {"k": "ウ", "q": "1年1組のタブレットから、どこにパケットが届けば故障箇所を特定できるか。", "ch": ["192.168.1.11", "192.168.1.21", "192.168.1.31", "192.168.1.61", "192.168.1.101"], "a": 0, "why": "2つの候補のうち、片方が故障のときだけ届く相手を選びます。届けば一方、届かなければもう一方と切り分けられます。"}], "本文の答えは【ア】②　【イ】⓪（順不同）　【ウ】⓪ です。STEP 2・3 の考え方がそのまま使えます。");
+  }
+
   function init() {
     document.querySelectorAll('[data-from]').forEach(b => b.addEventListener('click', () => {
       from = b.dataset.from;
@@ -249,6 +255,7 @@
     window.Terms.glossary($('glossBox'), ['ルータ', 'スイッチングハブ', 'アクセスポイント', 'LAN', 'IPアドレス', 'パケット', 'プロトコル']);
     document.querySelectorAll('[data-from]').forEach(b => b.setAttribute('aria-pressed', b.dataset.from === from));
     drawAll(); startQuiz();
+    drawBook();
     window.Terms.attach();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
