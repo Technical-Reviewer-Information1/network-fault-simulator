@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ネットワークの通信障害｜情報Ⅰ共通テスト対策問題集</title>
+<meta name="description" content="「どこまで届いて、どこから届かないか」を調べれば、故障箇所は必ず絞り込めます。自分で疎通確認をしながら犯人を特定しましょう。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 fill=%22%2315181c%22/%3E%3Ctext x=%2216%22 y=%2222%22 font-size=%2218%22 font-family=%22monospace%22 fill=%22%23fff%22 text-anchor=%22middle%22%3E01%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="inner">
+    <span class="eyebrow">第 4 章　情報通信ネットワーク　4-5</span>
+    <h1>ネットワークの通信障害（pp.112-114）</h1>
+    <p class="lead">「どこまで届いて、どこから届かないか」を調べれば、故障箇所は必ず絞り込めます。自分で疎通確認をしながら犯人を特定しましょう。</p>
+    <p class="credit">Created by Dit-Lab.(Daiki ITO)　/　Supported by Tomoaki ATSUMI</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="step" id="step1">
+    <h2><span class="no">STEP 1</span>ネットワークの構成を読む</h2>
+    <p class="desc">まず「どの機器がどこにつながっているか」を確かめます。<strong>ある機器が壊れると、その先すべてに届かなくなる</strong>のがポイントです。</p>
+
+    <div class="panel">
+      <div id="topoBox"></div>
+      <div class="legend2" style="display:flex;gap:14px;flex-wrap:wrap;font-size:.79rem;color:var(--ink-2);margin-top:10px;align-items:center">
+        <span><i style="display:inline-block;width:14px;height:12px;border:3px solid #123a6b;margin-right:5px"></i>いま操作している場所</span>
+        <span><i style="display:inline-block;width:14px;height:12px;border:2px solid #1f7a3d;background:#eef6f0;margin-right:5px"></i>届いた</span>
+        <span><i style="display:inline-block;width:14px;height:12px;border:2px solid #b3261e;background:#fbefee;margin-right:5px"></i>届かない</span>
+        <span><i style="display:inline-block;width:14px;height:12px;border:2px dashed #8a5a00;background:#fbf5e8;margin-right:5px"></i>故障の候補</span>
+      </div>
+      <div class="note info" style="margin-top:12px">
+        <span class="term" data-t="ルータ">ルータ</span>はネットワークどうしをつなぎ、<span class="term" data-t="スイッチングハブ">スイッチングハブ</span>は同じネットワーク内の機器をつなぎます。
+        <span class="term" data-t="アクセスポイント">アクセスポイント</span>は無線の端末を有線につなぎます。
+      </div>
+    </div>
+  </section>
+
+  <section class="step" id="step2">
+    <h2><span class="no">STEP 2</span>疎通確認をする</h2>
+    <p class="desc">図の機器を<strong>クリック（タップ）すると、いまいる場所からパケットが届くかを調べます</strong>。届く・届かないを記録していきましょう。</p>
+
+    <div class="panel">
+      <div class="btn-row" style="margin-bottom:12px">
+        <span class="badge">調べる場所</span>
+        <button class="btn sm" data-from="pc1">視聴覚室のPC</button>
+        <button class="btn sm" data-from="tab1">1年1組のタブレット</button>
+        <button class="btn sm ghost" id="clearPing">記録を消す</button>
+      </div>
+      <div class="note" id="pingMsg">図の機器をクリックしてください。</div>
+      <div class="tbl-scroll" style="margin-top:12px"><table class="tbl" id="pingTable"></table></div>
+    </div>
+  </section>
+
+  <section class="step" id="step3">
+    <h2><span class="no">STEP 3</span>候補をしぼる</h2>
+    <p class="desc">記録した結果から、<strong>「1台だけ故障している」と考えたときに矛盾しない機器</strong>を自動でしぼります。</p>
+    <div class="panel">
+      <div class="note" id="suspectNote"></div>
+      <div class="suspects" id="suspectList"></div>
+      <div class="btn-row" style="margin-top:14px">
+        <span class="badge">答えを選ぶ</span>
+        <div class="choice4" id="answerBox" style="margin-top:8px;width:100%"></div>
+      </div>
+      <div class="note" id="answerFb" hidden style="margin-top:12px"></div>
+      <div class="btn-row" style="margin-top:12px">
+        <button class="btn primary" id="newCase">別の故障で出題する</button>
+        <button class="btn ghost" id="reveal">正解を見る</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="step" id="step4">
+    <h2><span class="no">STEP 4</span>切り分けの考え方</h2>
+    <div class="panel">
+      <ol style="margin:0;padding-left:1.3em;color:var(--ink-2);font-size:.92rem;line-height:2.1">
+        <li><strong>届く機器と届かない機器を分ける。</strong>境目のどこかに故障がある。</li>
+        <li><strong>届かない機器すべての「手前」にある共通の機器</strong>が候補になる。</li>
+        <li>候補が複数あるときは、<strong>別の場所から</strong>調べる。場所を変えると通る経路が変わり、候補を1つに絞れる。</li>
+        <li>「1台だけ故障」という前提を忘れない。2台以上壊れている可能性を考えると絞れなくなる。</li>
+      </ol>
+      <div class="note warn" style="margin-top:14px">
+        <strong>よくある勘ちがい。</strong>「自分のパソコンが原因かもしれない」も本来は候補ですが、
+        この種の問題では<strong>スイッチングハブかルータのどれか1台</strong>という条件がつきます。条件を読み落とさないようにしましょう。
+      </div>
+    </div>
+  </section>
+
+  <section class="step" id="step5">
+    <h2><span class="no">STEP 5</span>確認クイズ</h2>
+    <div class="panel">
+      <div class="qhead">
+        <span class="badge" id="qProgress">1 / 1</span>
+        <span class="badge">正解 <span class="score" id="qScore">0</span></span>
+      </div>
+      <div class="card-q"><div class="q-scene" id="qText"></div></div>
+      <div class="choice4" id="qChoices"></div>
+      <div class="note" id="qFb" hidden style="margin-top:12px"></div>
+      <div class="btn-row" style="margin-top:12px">
+        <button class="btn primary" id="qNext" disabled>次の問題</button>
+        <button class="btn ghost" id="qReset">最初から</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="step" id="glossary">
+    <h2><span class="no">用語</span>この節で出てくることば</h2>
+    <div id="glossBox"></div>
+  </section>
+
+  <section class="step">
+    <h2><span class="no">まとめ</span>通信障害の切り分け</h2>
+    <ul style="margin:0;padding-left:1.2em;color:var(--ink-2);font-size:.92rem;line-height:2.05">
+      <li>故障した機器より<strong>先にあるものすべてに届かなくなる</strong>。</li>
+      <li>届く／届かないの<strong>境目</strong>を見つけることが切り分けの基本。</li>
+      <li>候補が絞れないときは<strong>調べる場所を変える</strong>。経路が変われば新しい情報が得られる。</li>
+      <li>ルータが壊れると<strong>インターネットにも他のネットワークにも</strong>出られなくなる。</li>
+      <li>スイッチングハブが壊れると、その配下だけが切り離される。</li>
+    </ul>
+  </section>
+
+  <section class="step">
+    <h2><span class="no">活用</span>授業・探究での使い方</h2>
+    <div class="use-note">
+      <h3>授業で</h3>
+      <ul>
+        <li>STEP 2 で疎通確認を1つずつ行い、○×から何が言えるかを全体で考える。</li>
+        <li>STEP 3 の候補が2台に絞れたところで、「次にどこから何を調べるか」を生徒に考えさせる。</li>
+        <li>STEP 4 のランダム出題で、毎回ちがう故障箇所を切り分ける練習ができる。</li>
+      </ul>
+      <h3 style="margin-top:12px">探究で</h3>
+      <ul>
+        <li>学校のネットワーク構成図を実際に描き、障害が起きたときの切り分け手順を作る。</li>
+        <li>1回の疎通確認で得られる情報量を考え、最も効率のよい調べる順番を検討する。</li>
+        <li>冗長化（経路を二重にする）すると、この問題がどう変わるかを考える。</li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<footer class="app-footer">
+  情報Ⅰ 共通テスト対策問題集（技術評論社）連動Webアプリ　/　Created by Dit-Lab.(Daiki ITO)　/　Supported by Tomoaki ATSUMI
+</footer>
+
+<script src="js/tools.js"></script>
+<script src="js/chart.js"></script>
+<script src="js/terms.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
