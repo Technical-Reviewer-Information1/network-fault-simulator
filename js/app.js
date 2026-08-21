@@ -97,6 +97,60 @@
         '</td><td class="' + (r.ok ? 'ok' : 'ng') + '">' + (r.ok ? '○ 届く' : '× 届かない') + '</td></tr>').join('') + '</tbody>';
   }
 
+
+  /* ---------- 出題モード：自分で故障を仕込む ---------- */
+  const MK = { broken: 'B', from: 'pc1', rows: [] };
+
+  function mkFill() {
+    $('mkBroken').innerHTML = NETDEVS.map(function (id) {
+      return '<option value="' + id + '"' + (id === MK.broken ? ' selected' : '') + '>' +
+        NODES[id].name + '（' + NODES[id].ip + '）</option>';
+    }).join('');
+    $('mkFrom').innerHTML = ['pc1', 'tab1'].map(function (id) {
+      return '<option value="' + id + '"' + (id === MK.from ? ' selected' : '') + '>' + NODES[id].name + '</option>';
+    }).join('');
+  }
+
+  function mkBuild() {
+    MK.broken = $('mkBroken').value;
+    MK.from = $('mkFrom').value;
+    MK.rows = TARGETS.filter(function (t) { return t !== MK.from; }).map(function (t) {
+      return { t: t, ok: reach(MK.from, t, MK.broken) };
+    });
+    const ngN = MK.rows.filter(function (r) { return !r.ok; }).length;
+    $('mkTable').innerHTML =
+      '<thead><tr><th>調べた場所</th><th>送信先</th><th>IPアドレス</th><th>結果</th></tr></thead><tbody>' +
+      MK.rows.map(function (r) {
+        return '<tr><td>' + NODES[MK.from].name + '</td><td>' + NODES[r.t].name + '</td><td>' + NODES[r.t].ip +
+          '</td><td class="' + (r.ok ? 'ok' : 'ng') + '">' + (r.ok ? '○ 届く' : '× 届かない') + '</td></tr>';
+      }).join('') + '</tbody>';
+    const cands = NETDEVS.filter(function (c) {
+      return MK.rows.every(function (r) { return reach(MK.from, r.t, c) === r.ok; });
+    });
+    const n = $('mkNote');
+    if (!ngN) {
+      n.className = 'note warn';
+      n.innerHTML = '<strong>この設定では、どこも「×」になりません。</strong>' +
+        NODES[MK.from].name + 'から見ると ' + NODES[MK.broken].name + ' は経路の外にあるからです。' +
+        '調べる場所を変えるか、経路上の機器を止めてみましょう。';
+    } else if (cands.length > 1) {
+      n.className = 'note info';
+      n.innerHTML = 'この表からは、故障している機器の候補が <strong>' + cands.length + ' 台</strong>に絞られます（' +
+        cands.map(function (c) { return NODES[c].name; }).join('・') + '）。<br>' +
+        '<strong>1台に決められないときは、別の場所からも調べる必要があります。</strong>これが「切り分け」の考え方です。';
+    } else {
+      n.className = 'note ok';
+      n.innerHTML = 'この表だけで故障機器を <strong>1台に特定できます</strong>。表を相手に見せて当ててもらいましょう。';
+    }
+  }
+
+  function mkText() {
+    return NODES[MK.from].name + ' から疎通確認をした結果\n' +
+      MK.rows.map(function (r) {
+        return '・' + NODES[r.t].name + '（' + NODES[r.t].ip + '）… ' + (r.ok ? '○ 届く' : '× 届かない');
+      }).join('\n') + '\n\nこの結果から、故障している機器はどれでしょうか。';
+  }
+
   /* ---------- 候補の絞り込み ---------- */
   function computeSuspects() {
     const obs = [];
@@ -238,6 +292,26 @@
   }
 
   function init() {
+    if ($('mkBroken')) {
+      mkFill(); mkBuild();
+      $('mkGo').addEventListener('click', mkBuild);
+      $('mkBroken').addEventListener('change', mkBuild);
+      $('mkFrom').addEventListener('change', mkBuild);
+      $('mkShow').addEventListener('click', function () {
+        const n = $('mkNote'); n.className = 'note ok';
+        n.innerHTML = '<strong>答え：' + NODES[MK.broken].name + '（' + NODES[MK.broken].ip + '）が故障しています。</strong><br>' +
+          NODES[MK.from].name + 'から出たパケットは、' + NODES[MK.broken].name + 'を通る先だけ届かなくなります。';
+      });
+      $('mkHide').addEventListener('click', mkBuild);
+      $('mkCopy').addEventListener('click', function (e) {
+        const btn = e.currentTarget, old = btn.textContent, txt = mkText();
+        function done(m) { btn.textContent = m; setTimeout(function () { btn.textContent = old; }, 1600); }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(txt).then(function () { done('コピーしました'); }, function () { done('コピーできませんでした'); });
+        } else done('コピーできませんでした');
+      });
+    }
+
     document.querySelectorAll('[data-from]').forEach(b => b.addEventListener('click', () => {
       from = b.dataset.from;
       document.querySelectorAll('[data-from]').forEach(x => x.setAttribute('aria-pressed', x.dataset.from === from));

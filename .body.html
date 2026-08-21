@@ -51,6 +51,28 @@
     </div>
   </section>
 
+  <section class="step" id="stepMake">
+    <h2><span class="no">出題</span>自分で故障を仕込んで、友だちに出題する</h2>
+    <p class="desc">止める機器を自分で選び、<strong>疎通確認の結果表だけ</strong>を相手に見せて「どこが故障か」を当ててもらいます。
+      2人1組の活動にそのまま使えます。</p>
+    <div class="panel">
+      <div class="btn-row" style="flex-wrap:wrap;align-items:flex-end">
+        <label class="fld" for="mkBroken" style="margin:0">止める機器<br>
+          <select id="mkBroken" class="sel" style="width:16em"></select></label>
+        <label class="fld" for="mkFrom" style="margin:0">調べる場所<br>
+          <select id="mkFrom" class="sel" style="width:14em"></select></label>
+        <button class="btn primary" id="mkGo">この設定で結果表を作る</button>
+      </div>
+      <div class="tbl-scroll" style="margin-top:14px"><table class="tbl" id="mkTable"></table></div>
+      <div class="btn-row" style="margin-top:12px;flex-wrap:wrap">
+        <button class="btn" id="mkCopy">結果表をコピー</button>
+        <button class="btn" id="mkShow">答えを見る</button>
+        <button class="btn ghost" id="mkHide">答えをかくす</button>
+      </div>
+      <div class="note" id="mkNote" style="margin-top:12px"></div>
+    </div>
+  </section>
+
   <section class="step" id="step4">
     <h2><span class="no">STEP 4</span>切り分けの考え方</h2>
     <div class="panel">

@@ -6,7 +6,7 @@
 <title>ネットワークの通信障害｜情報Ⅰ共通テスト対策問題集</title>
 <meta name="description" content="「どこまで届いて、どこから届かないか」を調べれば、故障箇所は必ず絞り込めます。自分で疎通確認をしながら犯人を特定しましょう。">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 fill=%22%2315181c%22/%3E%3Ctext x=%2216%22 y=%2222%22 font-size=%2218%22 font-family=%22monospace%22 fill=%22%23fff%22 text-anchor=%22middle%22%3E01%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=1b60c856">
+<link rel="stylesheet" href="css/style.css?v=bdbb3cb0">
 <link rel="stylesheet" href="css/app.css?v=338fa21e">
 </head>
 <body>
@@ -74,6 +74,28 @@
     </div>
   </section>
 
+  <section class="step" id="stepMake">
+    <h2><span class="no">出題</span>自分で故障を仕込んで、友だちに出題する</h2>
+    <p class="desc">止める機器を自分で選び、<strong>疎通確認の結果表だけ</strong>を相手に見せて「どこが故障か」を当ててもらいます。
+      2人1組の活動にそのまま使えます。</p>
+    <div class="panel">
+      <div class="btn-row" style="flex-wrap:wrap;align-items:flex-end">
+        <label class="fld" for="mkBroken" style="margin:0">止める機器<br>
+          <select id="mkBroken" class="sel" style="width:16em"></select></label>
+        <label class="fld" for="mkFrom" style="margin:0">調べる場所<br>
+          <select id="mkFrom" class="sel" style="width:14em"></select></label>
+        <button class="btn primary" id="mkGo">この設定で結果表を作る</button>
+      </div>
+      <div class="tbl-scroll" style="margin-top:14px"><table class="tbl" id="mkTable"></table></div>
+      <div class="btn-row" style="margin-top:12px;flex-wrap:wrap">
+        <button class="btn" id="mkCopy">結果表をコピー</button>
+        <button class="btn" id="mkShow">答えを見る</button>
+        <button class="btn ghost" id="mkHide">答えをかくす</button>
+      </div>
+      <div class="note" id="mkNote" style="margin-top:12px"></div>
+    </div>
+  </section>
+
   <section class="step" id="step4">
     <h2><span class="no">STEP 4</span>切り分けの考え方</h2>
     <div class="panel">
@@ -138,12 +160,14 @@
         <li>STEP 2 で疎通確認を1つずつ行い、○×から何が言えるかを全体で考える。</li>
         <li>STEP 3 の候補が2台に絞れたところで、「次にどこから何を調べるか」を生徒に考えさせる。</li>
         <li>STEP 4 のランダム出題で、毎回ちがう故障箇所を切り分ける練習ができる。</li>
+        <li>「出題」で2人1組にし、結果表だけを見せ合って故障機器を当てさせる。</li>
       </ul>
       <h3 style="margin-top:12px">探究で</h3>
       <ul>
         <li>学校のネットワーク構成図を実際に描き、障害が起きたときの切り分け手順を作る。</li>
         <li>1回の疎通確認で得られる情報量を考え、最も効率のよい調べる順番を検討する。</li>
         <li>冗長化（経路を二重にする）すると、この問題がどう変わるかを考える。</li>
+        <li>1台に絞れない出題をわざと作り、あと何を調べれば絞れるかを考える。</li>
       </ul>
     </div>
   </section>
@@ -157,6 +181,6 @@
 <script src="js/tools.js?v=c07db610"></script>
 <script src="js/terms.js?v=92038844"></script>
 <script src="js/quiz.js?v=13402362"></script>
-<script src="js/app.js?v=69170e53"></script>
+<script src="js/app.js?v=e4079c49"></script>
 </body>
 </html>
